@@ -18,7 +18,13 @@ parser.add_argument('-f','--file_id', help='ID of sheet from Google', required=T
 # how to find the Team Drive ID:
 #     https://stackoverflow.com/questions/54300175/how-to-get-teamdriveid-when-use-google-drive-api
 parser.add_argument('-t','--team_drive_id', help='ID of team drive from Google', required=True)
+parser.add_argument('-r', '--rooms', help='comma delimited list of rooms with no spaces', required=False, type=str)
 args = parser.parse_args()
+if args.rooms is None:
+    print("no rooms selected... exiting")
+    sys.exit()
+else:
+    room_list = args.rooms.split(',')
 
 import logging
 logging.basicConfig(level=getattr(logging, args.loglevel))
@@ -278,11 +284,12 @@ def reverse_name(name):
     return result
 
 if __name__ == '__main__':
-    room_list = ['Murray Room', 'Best Parlor', 'JSSargent Room', 'Judiths Room']
-    room_list = ['Murray Room']
+    # room_list = ['Murray Room', 'Best Parlor', 'JSSargent Room', 'Judiths Room']
+    # room_list = ['Murray Room']
     # room_list = ['JSSargent Room']
     # room_list = ['Judiths Room']
     for room in room_list:
+        print("----- Processing room: {} -----".format(room))
         main(room)
 
 
