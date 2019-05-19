@@ -27,7 +27,7 @@ else:
     room_list = args.rooms.split(',')
 
 import logging
-logging.basicConfig(level=getattr(logging, args.loglevel))
+# logging.basicConfig(level=getattr(logging, args.loglevel))
 
 OBJECT_HEADER_RANGE = 'Inventory!A1:Z1'
 OBJECT_SHEET_RANGE = 'Inventory!A2:Z800'
@@ -87,6 +87,7 @@ def main(location='Best Parlor'):
         print("Error: no data fetched from " + OBJECT_SHEET_RANGE)
         sys.exit(1)
 
+    # !NOTE: the people sheet also includes styles, like Chippendale, Queen Anne, etc.
     # Build people header dictionary
     result = sheet.values().get(spreadsheetId=args.file_id, range=PEOPLE_HEADER_RANGE).execute()
     col_list = result.get('values')[0]
@@ -157,22 +158,16 @@ def main(location='Best Parlor'):
                                 break
                         if person_row is None:
                             print("No data for: " + obj_row[obj_col_list[COLUMN_NAME_SUBJECT_STYLE]])
+                        subject = reverse_name(obj_row[obj_col_list[COLUMN_NAME_SUBJECT_STYLE]])[0]
+                        if has_data(person_row, people_col_list[PEOPLE_COL_URL]):
+                            # add the subject's name as a link
+                            alt_text += "<a target='_blank' href='" + person_row[people_col_list[PEOPLE_COL_URL]] + \
+                                        "'>" + subject + '</a>'
                         else:
-                            subject = reverse_name(obj_row[obj_col_list[COLUMN_NAME_SUBJECT_STYLE]])[0]
-                            if has_data(person_row, people_col_list[PEOPLE_COL_URL]):
-                                # add the subject's name as a link
-                                alt_text += "<a target='_blank' href='" + person_row[people_col_list[PEOPLE_COL_URL]] + \
-                                            "'>" + subject + '</a>'
-                            else:
-                                alt_text += '<b>' + subject + '</b>'
-                            # add birth/death dates
-                            # if has_data(person_row, people_col_list[PEOPLE_COL_BIRTH]) and \
-                            #         has_data(person_row, people_col_list[PEOPLE_COL_DEATH]):
-                            #     alt_text += ' (' + person_row[people_col_list[PEOPLE_COL_BIRTH]]
-                            #     alt_text += '-' + person_row[people_col_list[PEOPLE_COL_DEATH]] + ')'
-                            if has_data(person_row, people_col_list[PEOPLE_COL_REL_TO_JUDITH]):
-                                alt_text += " <i>Judith's " + person_row[
-                                    people_col_list[PEOPLE_COL_REL_TO_JUDITH]] + "</i>"
+                            alt_text += '<b>' + subject + '</b>'
+                        if has_data(person_row, people_col_list[PEOPLE_COL_REL_TO_JUDITH]):
+                            alt_text += " <i>Judith's " + person_row[
+                                people_col_list[PEOPLE_COL_REL_TO_JUDITH]] + "</i>"
                         alt_text += '<br>'
                     else:
                         # add style & description
@@ -194,8 +189,6 @@ def main(location='Best Parlor'):
                                 else:
                                     alt_text += obj_row[obj_col_list[COLUMN_NAME_SUBJECT_STYLE]]
                                 alt_text += ' style<br>'
-                        if has_data(obj_row, obj_col_list[COLUMN_NAME_BINDER_DESC]):
-                            alt_text += obj_row[obj_col_list[COLUMN_NAME_BINDER_DESC]] + '<br>'
 
                     # Add creator:
                     if has_data(obj_row, obj_col_list[COLUMN_NAME_CREATOR]) and \
@@ -212,7 +205,6 @@ def main(location='Best Parlor'):
                         if creator_row is None:
                             print("No data for: " + obj_row[obj_col_list[COLUMN_NAME_CREATOR]])
                         creator_plus_attribute = reverse_name(obj_row[obj_col_list[COLUMN_NAME_CREATOR]])
-                        # creator = reverse_name(obj_row[obj_col_list[COLUMN_NAME_CREATOR]])[0]
                         if creator_plus_attribute[1] is None:
                             alt_text += 'by '
                         else:
@@ -234,6 +226,10 @@ def main(location='Best Parlor'):
                     if has_data(person_row, people_col_list[PEOPLE_COL_DESCRIP]):
                         alt_text += '<div style="text-align:left">' + \
                                     person_row[people_col_list[PEOPLE_COL_DESCRIP]] + '</div>'
+
+                    if has_data(obj_row, obj_col_list[COLUMN_NAME_BINDER_DESC]):
+                        alt_text += obj_row[obj_col_list[COLUMN_NAME_BINDER_DESC]]
+                    alt_text += '<br>' + obj_row[obj_col_list[COLUMN_NAME_ID]]
 
                 doc.body += div(img(src=path, alt=alt_text, style="width:100%", onclick="myFunctionPopUp(this);"), _class='column')
 
@@ -266,8 +262,8 @@ def reverse_name(name):
         name_wo_date = name
     last_first = name_wo_date.split(",")
     if len(last_first) != 2:
-        print("The following is not in the last, first name format:" + name)
-        result = None, None
+        print("The following is not in the last, first name format: " + name)
+        result = name_wo_date, None
     else:
         # deal with stuff in parens after the first name after the date has been removed
         first_and_parens = last_first[1].split("(")
@@ -279,7 +275,7 @@ def reverse_name(name):
             result = first_and_parens[0].lstrip() + last_first[0].lstrip(), text_after_date
             # print(result)
         else:
-            print("The following has data in multiple parens:" + name)
+            print("The following has data in multiple parens: " + name)
             result = None, None
     return result
 
