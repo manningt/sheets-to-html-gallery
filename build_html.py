@@ -9,6 +9,9 @@ from dominate import document
 from dominate.tags import *
 import argparse
 
+import markdown
+md = markdown.Markdown()
+
 # If modifying these scopes, delete the file token.pickle.
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly', 'https://www.googleapis.com/auth/drive.metadata.readonly']
 
@@ -39,13 +42,12 @@ COLUMN_NAME_OBJECT_TYPE = 'Object_Type'
 COLUMN_NAME_CREATOR = 'Creator'
 COLUMN_NAME_CREATION_DATE = 'Creation_Date'
 COLUMN_NAME_SUBJECT_STYLE = 'Subject_Style'
-COLUMN_NAME_BINDER_DESC = 'Binder_Description'
+COLUMN_NAME_NARRATIVE = 'Narrative'
 COLUMN_NAME_MEDIUM = 'Medium'
 PEOPLE_HEADER_RANGE = 'People!A1:Z1'
 # Note: number of people/styles in the sheet is hardcoded here.  Should be replaced with a sheets query
 PEOPLE_SHEET_RANGE = 'People!A2:Z100'
-TYPE_PORTRAITS = "portrait"
-TYPE_SILHOUTTE = "silhouette"
+PEOPLE_IMAGE_TYPE_LIST = ["portrait", "silhouette", "bust", "miniature" ]
 PEOPLE_COL_NAME = "Full_Name"
 PEOPLE_COL_REL_TO_JUDITH = "RelationshipToJudith"
 PEOPLE_COL_DESCRIP = "Description"
@@ -142,8 +144,10 @@ def main():
                     files_dict = results.get('files', [])
 
                     if not files_dict or len(files_dict) < 1:
-                        print("Warning: no pic for object: " + obj_row[obj_col_list[COLUMN_NAME_ID]] + " " + \
-                              obj_row[1] + " so skipping it")
+                        print("Warning: no pic for object: {:12} {:64.64}    Location: {}". \
+                                    format(obj_row[obj_col_list[COLUMN_NAME_ID]], \
+                                    obj_row[1], \
+                                    obj_row[obj_col_list[COLUMN_NAME_LOCATION]]))
                     else:
                         if len(files_dict) > 1:
                             print("Warning: multiple pics for object: " + obj_row[obj_col_list[COLUMN_NAME_ID]])
@@ -156,9 +160,7 @@ def main():
                         if len(obj_row) > obj_col_list[COLUMN_NAME_OBJECT_TYPE]:
                             # print(u'{0}: {1}'.format(row[obj_col_list[COLUMN_NAME_ID]], \
                             #                          row[obj_col_list[COLUMN_NAME_OBJECT_TYPE]]))
-
-                            if TYPE_PORTRAITS in obj_row[obj_col_list[COLUMN_NAME_OBJECT_TYPE]] or \
-                                    TYPE_SILHOUTTE in obj_row[obj_col_list[COLUMN_NAME_OBJECT_TYPE]]:
+                            if obj_row[obj_col_list[COLUMN_NAME_OBJECT_TYPE]].lower() in PEOPLE_IMAGE_TYPE_LIST:
                                 # add subject, start by gettng data no the person from the people tab
                                 for tmp_row in people_array:
                                     object_subject = obj_row[obj_col_list[COLUMN_NAME_SUBJECT_STYLE]].lower().strip()
@@ -237,10 +239,10 @@ def main():
 
                             if has_data(person_row, people_col_list[PEOPLE_COL_DESCRIP]):
                                 alt_text += '<div style="text-align:left">' + \
-                                            person_row[people_col_list[PEOPLE_COL_DESCRIP]] + '</div>'
+                                            md.convert(person_row[people_col_list[PEOPLE_COL_DESCRIP]]) + '</div>'
 
-                            if has_data(obj_row, obj_col_list[COLUMN_NAME_BINDER_DESC]):
-                                alt_text += obj_row[obj_col_list[COLUMN_NAME_BINDER_DESC]]
+                            if has_data(obj_row, obj_col_list[COLUMN_NAME_NARRATIVE]):
+                                alt_text += md.convert(obj_row[obj_col_list[COLUMN_NAME_NARRATIVE]])
                             alt_text += '<br>' + obj_row[obj_col_list[COLUMN_NAME_ID]]
 
                         docs[locations.index(location)].body += div(img(src=path, alt=alt_text, style="width:100%", \
