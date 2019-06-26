@@ -47,7 +47,7 @@ COLUMN_NAME_MEDIUM = 'Medium'
 PEOPLE_HEADER_RANGE = 'People!A1:Z1'
 # Note: number of people/styles in the sheet is hardcoded here.  Should be replaced with a sheets query
 PEOPLE_SHEET_RANGE = 'People!A2:Z100'
-PEOPLE_IMAGE_TYPE_LIST = ["portrait", "silhouette", "bust", "miniature" ]
+PEOPLE_IMAGE_TYPE_LIST = ["portrait", "silhouette", "bust", "miniature", "bronze" ]
 PEOPLE_COL_NAME = "Full_Name"
 PEOPLE_COL_REL_TO_JUDITH = "RelationshipToJudith"
 PEOPLE_COL_DESCRIP = "Description"
@@ -204,6 +204,7 @@ def main():
                                         alt_text += ' style<br>'
 
                             # Add creator:
+                            creator_row = None
                             if has_data(obj_row, obj_col_list[COLUMN_NAME_CREATOR]) and \
                                     'unknown' not in obj_row[obj_col_list[COLUMN_NAME_CREATOR]].lower():
                                 # look for data on the creator
@@ -231,11 +232,19 @@ def main():
                                     alt_text += creator_plus_attribute[0]
                             # Add creation date
                             if has_data(obj_row, obj_col_list[COLUMN_NAME_CREATION_DATE]):
-                                alt_text += ' (' + obj_row[obj_col_list[COLUMN_NAME_CREATION_DATE]] + ')'
+                                if "unknown" in obj_row[obj_col_list[COLUMN_NAME_CREATION_DATE]].lower():
+                                    alt_text += ' (Unknown date)'
+                                else:
+                                    alt_text += ' (' + obj_row[obj_col_list[COLUMN_NAME_CREATION_DATE]] + ')'
 
                             if has_data(obj_row, obj_col_list[COLUMN_NAME_MEDIUM]):
                                 alt_text += ' ' + obj_row[obj_col_list[COLUMN_NAME_MEDIUM]] + '.'
                             alt_text += '<br>'
+
+                            #Add creator description
+                            if has_data(creator_row, people_col_list[PEOPLE_COL_DESCRIP]):
+                                alt_text += '<div style="text-align:left">' + 'The creator was ' + \
+                                            md.convert(creator_row[people_col_list[PEOPLE_COL_DESCRIP]]) + '</div>'
 
                             if has_data(person_row, people_col_list[PEOPLE_COL_DESCRIP]):
                                 alt_text += '<div style="text-align:left">' + \
