@@ -52,6 +52,7 @@ PEOPLE_COL_NAME = "Full_Name"
 PEOPLE_COL_REL_TO_JUDITH = "RelationshipToJudith"
 PEOPLE_COL_DESCRIP = "Description"
 PEOPLE_COL_URL = "URL"
+TITLED_ARTWORK_TYPE_LIST = ["painting", "watercolor", "lithograph", "sculpture", "coat-of-arms", "book", "etching"]
 
 service = None
 
@@ -157,7 +158,9 @@ def main():
 
                         # make the pop-up text
                         alt_text = ""
-                        if len(obj_row) > obj_col_list[COLUMN_NAME_OBJECT_TYPE]:
+                        if len(obj_row) > obj_col_list[COLUMN_NAME_OBJECT_TYPE] and \
+                            has_data(obj_row, obj_col_list[COLUMN_NAME_OBJECT_TYPE]) and \
+                            has_data(obj_row, obj_col_list[COLUMN_NAME_SUBJECT_STYLE]):
                             # print(u'{0}: {1}'.format(row[obj_col_list[COLUMN_NAME_ID]], \
                             #                          row[obj_col_list[COLUMN_NAME_OBJECT_TYPE]]))
                             if obj_row[obj_col_list[COLUMN_NAME_OBJECT_TYPE]].lower() in PEOPLE_IMAGE_TYPE_LIST:
@@ -182,26 +185,31 @@ def main():
                                     alt_text += " <i>Judith's " + person_row[
                                         people_col_list[PEOPLE_COL_REL_TO_JUDITH]] + "</i>"
                                 alt_text += '<br>'
+
+                            elif obj_row[obj_col_list[COLUMN_NAME_OBJECT_TYPE]].lower() in TITLED_ARTWORK_TYPE_LIST:
+                                # add title
+                                object_title = obj_row[obj_col_list[COLUMN_NAME_SUBJECT_STYLE]]
+                                alt_text += '<b><i>' + object_title + '</i></b>'
+
                             else:
                                 # add style & description
-                                if has_data(obj_row, obj_col_list[COLUMN_NAME_SUBJECT_STYLE]):
-                                    for tmp_row in people_array:
-                                        object_style = obj_row[obj_col_list[COLUMN_NAME_SUBJECT_STYLE]].lower().strip()
-                                        style_name = tmp_row[people_col_list[PEOPLE_COL_NAME]].lower().strip()
-                                        # print('Comparing: ' + object_subject + ' to: ' + person_name)
-                                        if object_style in style_name:
-                                            style_row = tmp_row
-                                            break
-                                    if style_row is None:
-                                        print("No data for style: " + obj_row[obj_col_list[COLUMN_NAME_SUBJECT_STYLE]])
+                                for tmp_row in people_array:
+                                    object_style = obj_row[obj_col_list[COLUMN_NAME_SUBJECT_STYLE]].lower().strip()
+                                    style_name = tmp_row[people_col_list[PEOPLE_COL_NAME]].lower().strip()
+                                    # print('Comparing: ' + object_subject + ' to: ' + person_name)
+                                    if object_style in style_name:
+                                        style_row = tmp_row
+                                        break
+                                if style_row is None:
+                                    print("No data for style: " + obj_row[obj_col_list[COLUMN_NAME_SUBJECT_STYLE]])
+                                else:
+                                    if has_data(style_row, people_col_list[PEOPLE_COL_URL]):
+                                        alt_text += "<a target='_blank' href='" + style_row[
+                                            people_col_list[PEOPLE_COL_URL]] + \
+                                                    "'>" + obj_row[obj_col_list[COLUMN_NAME_SUBJECT_STYLE]] + '</a>'
                                     else:
-                                        if has_data(style_row, people_col_list[PEOPLE_COL_URL]):
-                                            alt_text += "<a target='_blank' href='" + style_row[
-                                                people_col_list[PEOPLE_COL_URL]] + \
-                                                        "'>" + obj_row[obj_col_list[COLUMN_NAME_SUBJECT_STYLE]] + '</a>'
-                                        else:
-                                            alt_text += obj_row[obj_col_list[COLUMN_NAME_SUBJECT_STYLE]]
-                                        alt_text += ' style<br>'
+                                        alt_text += obj_row[obj_col_list[COLUMN_NAME_SUBJECT_STYLE]]
+                                    alt_text += ' style<br>'
 
                             # Add creator:
                             creator_row = None
@@ -220,7 +228,7 @@ def main():
                                     print("No data for: " + obj_row[obj_col_list[COLUMN_NAME_CREATOR]])
                                 creator_plus_attribute = reverse_name(obj_row[obj_col_list[COLUMN_NAME_CREATOR]])
                                 if creator_plus_attribute[1] is None:
-                                    alt_text += 'by '
+                                    alt_text += ' by '
                                 else:
                                     alt_text += creator_plus_attribute[1] + ' '
                                 # <a target='_blank' href='https://en.wikipedia.org/wiki/James_Frothingham'>James Frothingham</a>
@@ -243,16 +251,24 @@ def main():
 
                             #Add creator description
                             if has_data(creator_row, people_col_list[PEOPLE_COL_DESCRIP]):
-                                alt_text += '<div style="text-align:left">' + 'The creator was ' + \
-                                            md.convert(creator_row[people_col_list[PEOPLE_COL_DESCRIP]]) + '</div>'
+                                creator_desc = md.convert(creator_row[people_col_list[PEOPLE_COL_DESCRIP]])
+                                if "<p>" in creator_desc[0:3]:
+                                    creator_desc = creator_desc[3:]
+                                # print(creator_plus_attribute)
+                                # print(creator_desc)
+                                alt_text += '<div style="text-align:left">' + "<p>" + creator_plus_attribute[0] + \
+                                            ' ' + creator_desc + '</div>'
 
                             if has_data(person_row, people_col_list[PEOPLE_COL_DESCRIP]):
-                                alt_text += '<div style="text-align:left">' + \
-                                            md.convert(person_row[people_col_list[PEOPLE_COL_DESCRIP]]) + '</div>'
+                                person_desc = md.convert(person_row[people_col_list[PEOPLE_COL_DESCRIP]])
+                                if "<p>" in person_desc[0:3]:
+                                    person_desc = person_desc[3:]
+                                alt_text += '<div style="text-align:left">' + "<p>" + subject + \
+                                            ' ' + person_desc + '</div>'
 
-                            if has_data(obj_row, obj_col_list[COLUMN_NAME_NARRATIVE]):
-                                alt_text += md.convert(obj_row[obj_col_list[COLUMN_NAME_NARRATIVE]])
-                            alt_text += '<br>' + obj_row[obj_col_list[COLUMN_NAME_ID]]
+                        if has_data(obj_row, obj_col_list[COLUMN_NAME_NARRATIVE]):
+                            alt_text += md.convert(obj_row[obj_col_list[COLUMN_NAME_NARRATIVE]])
+                        alt_text += obj_row[obj_col_list[COLUMN_NAME_ID]]
 
                         docs[locations.index(location)].body += div(img(src=path, alt=alt_text, style="width:100%", \
                                                                     onclick="myFunctionPopUp(this);"), _class='column')
