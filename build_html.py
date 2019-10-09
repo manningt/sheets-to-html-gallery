@@ -159,8 +159,7 @@ def main():
                         # make the pop-up text
                         alt_text = ""
                         if len(obj_row) > obj_col_list[COLUMN_NAME_OBJECT_TYPE] and \
-                            has_data(obj_row, obj_col_list[COLUMN_NAME_OBJECT_TYPE]) and \
-                            has_data(obj_row, obj_col_list[COLUMN_NAME_SUBJECT_STYLE]):
+                            has_data(obj_row, obj_col_list[COLUMN_NAME_OBJECT_TYPE]):
                             # print(u'{0}: {1}'.format(row[obj_col_list[COLUMN_NAME_ID]], \
                             #                          row[obj_col_list[COLUMN_NAME_OBJECT_TYPE]]))
                             if obj_row[obj_col_list[COLUMN_NAME_OBJECT_TYPE]].lower() in PEOPLE_IMAGE_TYPE_LIST:
@@ -193,23 +192,24 @@ def main():
 
                             else:
                                 # add style & description
-                                for tmp_row in people_array:
-                                    object_style = obj_row[obj_col_list[COLUMN_NAME_SUBJECT_STYLE]].lower().strip()
-                                    style_name = tmp_row[people_col_list[PEOPLE_COL_NAME]].lower().strip()
-                                    # print('Comparing: ' + object_subject + ' to: ' + person_name)
-                                    if object_style in style_name:
-                                        style_row = tmp_row
-                                        break
-                                if style_row is None:
-                                    print("No data for style: " + obj_row[obj_col_list[COLUMN_NAME_SUBJECT_STYLE]])
-                                else:
-                                    if has_data(style_row, people_col_list[PEOPLE_COL_URL]):
-                                        alt_text += "<a target='_blank' href='" + style_row[
-                                            people_col_list[PEOPLE_COL_URL]] + \
-                                                    "'>" + obj_row[obj_col_list[COLUMN_NAME_SUBJECT_STYLE]] + '</a>'
+                                if has_data(obj_row, obj_col_list[COLUMN_NAME_SUBJECT_STYLE]):
+                                    for tmp_row in people_array:
+                                        object_style = obj_row[obj_col_list[COLUMN_NAME_SUBJECT_STYLE]].lower().strip()
+                                        style_name = tmp_row[people_col_list[PEOPLE_COL_NAME]].lower().strip()
+                                        # print('Comparing: ' + object_subject + ' to: ' + person_name)
+                                        if object_style in style_name:
+                                            style_row = tmp_row
+                                            break
+                                    if style_row is None:
+                                        print("No data for style: " + obj_row[obj_col_list[COLUMN_NAME_SUBJECT_STYLE]])
                                     else:
-                                        alt_text += obj_row[obj_col_list[COLUMN_NAME_SUBJECT_STYLE]]
-                                    alt_text += ' style<br>'
+                                        if has_data(style_row, people_col_list[PEOPLE_COL_URL]):
+                                            alt_text += "<a target='_blank' href='" + style_row[
+                                                people_col_list[PEOPLE_COL_URL]] + \
+                                                        "'>" + obj_row[obj_col_list[COLUMN_NAME_SUBJECT_STYLE]] + '</a>'
+                                        else:
+                                            alt_text += obj_row[obj_col_list[COLUMN_NAME_SUBJECT_STYLE]]
+                                        alt_text += ' style<br>'
 
                             # Add creator:
                             creator_row = None
