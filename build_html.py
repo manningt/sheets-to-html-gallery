@@ -52,7 +52,8 @@ PEOPLE_COL_NAME = "Full_Name"
 PEOPLE_COL_REL_TO_JUDITH = "RelationshipToJudith"
 PEOPLE_COL_DESCRIP = "Description"
 PEOPLE_COL_URL = "URL"
-TITLED_ARTWORK_TYPE_LIST = ["painting", "watercolor", "lithograph", "sculpture", "coat-of-arms", "book", "etching"]
+TITLED_ARTWORK_TYPE_LIST = ["painting", "watercolor", "lithograph", "sculpture", "coat-of-arms", \
+                             "book", "etching", "drawing", "copy", "engraving"]
 
 service = None
 
