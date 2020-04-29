@@ -2,6 +2,7 @@
 # the following are generated files:
 *.pickle
 *.html
+pages*
 # the json files have Google API credentials
 *.json
 
