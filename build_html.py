@@ -35,7 +35,7 @@ import logging
 OBJECT_HEADER_RANGE = 'Inventory!A1:Z1'
 # Note: number of objects in the sheet is hardcoded here.  Should be replaced with a sheets query
 OBJECT_SHEET_RANGE = 'Inventory!A2:Z800'
-#OBJECT_SHEET_RANGE = 'Inventory!A2:Z160' #uncomment for shorter runtimes
+#OBJECT_SHEET_RANGE = 'Inventory!A2:Z30' #uncomment for shorter runtimes
 COLUMN_NAME_LOCATION = 'Location'
 COLUMN_NAME_ID = 'ID'
 COLUMN_NAME_TITLE = 'Title'
@@ -158,7 +158,7 @@ def main():
             span(_class="popuptext", id="myPopup")
         docs_category.append(doc)
 
-    for obj_row in object_array:
+    for obj_num, obj_row in enumerate(object_array):
         person_row = None
         creator_row = None
         style_row = None
@@ -168,7 +168,11 @@ def main():
                 obj_row[obj_col_list[COLUMN_NAME_LOCATION]].lower() in IGNORE_OBJECT_LIST:
             print("Skipping {:13} {:8} {:64.64}".format(obj_row[obj_col_list[COLUMN_NAME_LOCATION]],\
                                                         obj_row[obj_col_list[COLUMN_NAME_ID]], obj_row[1]))
+        elif not has_data(obj_row, obj_col_list[COLUMN_NAME_ID]):
+            # need to add 2 to get the correct row offset (title row skipped)
+            print("blank ID in row {}".format(obj_num+2))
         else:
+            # print("object: {}".format(obj_row[obj_col_list[COLUMN_NAME_ID]]))
             # query to get picture file ID
             query = query_prefix + "'" + obj_row[obj_col_list[COLUMN_NAME_ID]] + "'"
             results = service.files().list(
@@ -185,14 +189,16 @@ def main():
                     print("    Location: {}".format(obj_row[obj_col_list[COLUMN_NAME_LOCATION]]))
                 else:
                     print("")
-                pic_path = "https://drive.google.com/a/sargenthouse.org/thumbnail?id=1hWgquqPudT346wxDZQzpLGFzOZqfERRs"
+                thumbnail_path = "https://drive.google.com/a/sargenthouse.org/thumbnail?id=1hWgquqPudT346wxDZQzpLGFzOZqfERRs"
+                pic_path = None
 
             else:
                 if len(files_dict) > 1:
                     print("Warning: multiple pics for object: " + obj_row[obj_col_list[COLUMN_NAME_ID]])
                 pic_id = next(iter(files_dict))['id']
                 # print(u'{0}: {1}'.format(row[obj_col_list[COLUMN_NAME_ID]], pic_id))
-                pic_path = "https://drive.google.com/a/sargenthouse.org/thumbnail?id=" + pic_id
+                thumbnail_path = "https://drive.google.com/a/sargenthouse.org/thumbnail?id=" + pic_id
+                pic_path = "https://drive.google.com/file/d/" + pic_id + "/view"
 
             # the title appears on hover over the picture (desktop browser)
             pic_title = obj_row[obj_col_list[COLUMN_NAME_ID]] + "  " + obj_row[1]
@@ -201,8 +207,9 @@ def main():
             if has_data(obj_row, obj_col_list[COLUMN_NAME_OBJECT_TYPE]):
                 # print(u'{0}: {1}'.format(row[obj_col_list[COLUMN_NAME_ID]], \
                 #                          row[obj_col_list[COLUMN_NAME_OBJECT_TYPE]]))
-                if obj_row[obj_col_list[COLUMN_NAME_OBJECT_TYPE]].lower() in PEOPLE_IMAGE_TYPE_LIST:
-                    # add subject, start by gettng data no the person from the people tab
+                if obj_row[obj_col_list[COLUMN_NAME_OBJECT_TYPE]].lower() in PEOPLE_IMAGE_TYPE_LIST and \
+                    has_data(obj_row, obj_col_list[COLUMN_NAME_SUBJECT_STYLE]):
+                    # add subject, start by getting data about the person from the people tab
                     for tmp_row in people_array:
                         object_subject = obj_row[obj_col_list[COLUMN_NAME_SUBJECT_STYLE]].lower().strip()
                         person_name = tmp_row[people_col_list[PEOPLE_COL_NAME]].lower().strip()
@@ -225,9 +232,10 @@ def main():
                     alt_text += '<br>'
 
                 elif obj_row[obj_col_list[COLUMN_NAME_OBJECT_TYPE]].lower() in TITLED_ARTWORK_TYPE_LIST:
-                    # add title
-                    object_title = obj_row[obj_col_list[COLUMN_NAME_SUBJECT_STYLE]]
-                    alt_text += '<b><i>' + object_title + '</i></b>'
+                    if has_data(obj_row, obj_col_list[COLUMN_NAME_SUBJECT_STYLE]):
+                        # add title
+                        object_title = obj_row[obj_col_list[COLUMN_NAME_SUBJECT_STYLE]]
+                        alt_text += '<b><i>' + object_title + '</i></b>'
 
                 else:
                     # add style & description
@@ -308,13 +316,15 @@ def main():
 
             if has_data(obj_row, obj_col_list[COLUMN_NAME_NARRATIVE]):
                 alt_text += md.convert(obj_row[obj_col_list[COLUMN_NAME_NARRATIVE]])
-            alt_text += obj_row[obj_col_list[COLUMN_NAME_ID]]
+            if pic_path:
+                alt_text += "<a target='_blank' href='" + pic_path + "'>" + \
+                            obj_row[obj_col_list[COLUMN_NAME_ID]] + '</a>'
 
             # append to page by location doc
             if has_data(obj_row, obj_col_list[COLUMN_NAME_LOCATION]) and \
                     obj_row[obj_col_list[COLUMN_NAME_LOCATION]] in locations:
                 docs_location[locations.index(obj_row[obj_col_list[COLUMN_NAME_LOCATION]])].body += \
-                        div(img(src=pic_path, alt=alt_text, style="width:100%", \
+                        div(img(src=thumbnail_path, alt=alt_text, style="width:100%", \
                             title = pic_title, \
                             onclick="myFunctionPopUp(this);"), _class='column')
 
@@ -326,7 +336,7 @@ def main():
             category_dict[obj_prefix]['obj_id_count'] += 1
             category_dict[obj_prefix]['object_count'] += 1
             docs_category[CATEGORY_TYPE_LIST.index(category_dict[obj_prefix]['type'])].body += \
-                div(img(src=pic_path, alt=alt_text, style="width:100%", title=pic_title, \
+                div(img(src=thumbnail_path, alt=alt_text, style="width:100%", title=pic_title, \
                         onclick="myFunctionPopUp(this);"), _class='column')
 
     # write out page per location HTML
@@ -359,10 +369,12 @@ def reverse_name(name):
     # remove date in parathesis.  Dates can be of the form 'died 1900'
     # print("processing name: " + name)
     # match = re.search("\(.*[0-9]\)", name)
+    date = ""
     match = re.search("\([1-2][0,5-9]..\-.*\)", name)
     if match is not None:
         # print("match start:" + str(match.start()) + "match end: " + str(match.end()))
         name_wo_date = name[0:match.start()] + name[match.end():]
+        date = name[match.start():match.end()]
     else:
         name_wo_date = name
     # print("name_wo_date: {}".format(name_wo_date))
@@ -376,11 +388,11 @@ def reverse_name(name):
         # print("last_first: {}".format(last_first))
         # print("first_and_parens: {}".format(first_and_parens))
         if len(first_and_parens) == 1:
-            result = last_first[1].lstrip() + last_first[0].lstrip(), None
+            result = last_first[1].lstrip() + last_first[0].lstrip() + " " + date, None
         elif len(first_and_parens) == 2:
             # print(last_first[0] + " " + last_first[1] + " -- " + first_and_parens[0] + " " + first_and_parens[1])
             text_after_date = first_and_parens[1].lstrip().split(")")[0]
-            result = first_and_parens[0].lstrip() + last_first[0].lstrip(), text_after_date
+            result = first_and_parens[0].lstrip() + last_first[0].lstrip() + " " + date, text_after_date
             # print(result)
         else:
             print("The following has data in multiple parens: " + name)
