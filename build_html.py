@@ -35,7 +35,7 @@ import logging
 OBJECT_HEADER_RANGE = 'Inventory!A1:Z1'
 # Note: number of objects in the sheet is hardcoded here.  Should be replaced with a sheets query
 OBJECT_SHEET_RANGE = 'Inventory!A2:Z800'
-#OBJECT_SHEET_RANGE = 'Inventory!A2:Z30' #uncomment for shorter runtimes
+#OBJECT_SHEET_RANGE = 'Inventory!A2:Z40' #uncomment for shorter runtimes
 COLUMN_NAME_LOCATION = 'Location'
 COLUMN_NAME_ID = 'ID'
 COLUMN_NAME_TITLE = 'Title'
@@ -158,16 +158,20 @@ def main():
             span(_class="popuptext", id="myPopup")
         docs_category.append(doc)
 
+    missing_pic_array = []
+    missing_pic_columns = ['ID', 'Description', 'Location']
     for obj_num, obj_row in enumerate(object_array):
         person_row = None
         creator_row = None
         style_row = None
         alt_text = ""
 
+        # skip deaccessioned, returned, etc items:
         if has_data(obj_row, obj_col_list[COLUMN_NAME_LOCATION]) and \
                 obj_row[obj_col_list[COLUMN_NAME_LOCATION]].lower() in IGNORE_OBJECT_LIST:
             print("Skipping {:13} {:8} {:64.64}".format(obj_row[obj_col_list[COLUMN_NAME_LOCATION]],\
                                                         obj_row[obj_col_list[COLUMN_NAME_ID]], obj_row[1]))
+        # skip blank rows:
         elif not has_data(obj_row, obj_col_list[COLUMN_NAME_ID]):
             # need to add 2 to get the correct row offset (title row skipped)
             print("blank ID in row {}".format(obj_num+2))
@@ -183,12 +187,19 @@ def main():
             files_dict = results.get('files', [])
 
             if not files_dict or len(files_dict) < 1:
-                print("Warning: no pic for object: {:12} {:64.64}".format(obj_row[obj_col_list[COLUMN_NAME_ID]], \
-                                                                          obj_row[1]), end=" ")
                 if has_data(obj_row, obj_col_list[COLUMN_NAME_LOCATION]):
-                    print("    Location: {}".format(obj_row[obj_col_list[COLUMN_NAME_LOCATION]]))
+                    obj_w_missing_pic_location = obj_row[obj_col_list[COLUMN_NAME_LOCATION]]
                 else:
-                    print("")
+                    obj_w_missing_pic_location = ""
+                missing_pic_array.append({missing_pic_columns[0]: obj_row[obj_col_list[COLUMN_NAME_ID]], \
+                                          missing_pic_columns[1]: obj_row[1], \
+                                          missing_pic_columns[2]: obj_w_missing_pic_location})
+                # print("Warning: no pic for object: {:12} {:64.64}".format(obj_row[obj_col_list[COLUMN_NAME_ID]], \
+                #                                                           obj_row[1]), end=" ")
+                # if has_data(obj_row, obj_col_list[COLUMN_NAME_LOCATION]):
+                #     print("    Location: {}".format(obj_row[obj_col_list[COLUMN_NAME_LOCATION]]))
+                # else:
+                #     print("")
                 thumbnail_path = "https://drive.google.com/a/sargenthouse.org/thumbnail?id=1hWgquqPudT346wxDZQzpLGFzOZqfERRs"
                 pic_path = None
 
@@ -350,6 +361,15 @@ def main():
         out_file = "pages-by-category/" + category + '.html'
         with open(out_file, 'w') as f:
             f.write(docs_category[CATEGORY_TYPE_LIST.index(category)].render())
+
+    # write out missing picture csv file
+    import time, csv
+    missing_pic_filename = time.strftime("%Y-%m-%d") + "_missing-pic-report.csv"
+    with open(missing_pic_filename, mode='w') as csv_file:
+        writer = csv.DictWriter(csv_file, fieldnames=missing_pic_columns)
+        writer.writeheader()
+        for missing_pic_object in missing_pic_array:
+            writer.writerow(missing_pic_object)
 
 
 def has_data(row, column):
