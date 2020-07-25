@@ -37,6 +37,7 @@ OBJECT_HEADER_RANGE = 'Inventory!A1:Z1'
 OBJECT_SHEET_RANGE = 'Inventory!A2:Z800'
 #OBJECT_SHEET_RANGE = 'Inventory!A2:Z40' #uncomment for shorter runtimes
 COLUMN_NAME_LOCATION = 'Location'
+COLUMN_NAME_DESCRIPTION = 'Original Description'
 COLUMN_NAME_ID = 'ID'
 COLUMN_NAME_TITLE = 'Title'
 COLUMN_NAME_OBJECT_TYPE = 'Object_Type'
@@ -165,16 +166,25 @@ def main():
         creator_row = None
         style_row = None
         alt_text = ""
+        gone_from_collection = False
+        obj_location = ""
+        obj_description = ""
+        if has_data(obj_row, obj_col_list[COLUMN_NAME_DESCRIPTION]):
+            obj_description = obj_row[obj_col_list[COLUMN_NAME_DESCRIPTION]]
 
-        # skip deaccessioned, returned, etc items:
-        if has_data(obj_row, obj_col_list[COLUMN_NAME_LOCATION]) and \
-                obj_row[obj_col_list[COLUMN_NAME_LOCATION]].lower() in IGNORE_OBJECT_LIST:
-            print("Skipping {:13} {:8} {:64.64}".format(obj_row[obj_col_list[COLUMN_NAME_LOCATION]],\
-                                                        obj_row[obj_col_list[COLUMN_NAME_ID]], obj_row[1]))
+        # skip deaccessioned, returned items:
+        if has_data(obj_row, obj_col_list[COLUMN_NAME_LOCATION]):
+            obj_location = obj_row[obj_col_list[COLUMN_NAME_LOCATION]]
+            for reason in IGNORE_OBJECT_LIST:
+                if reason in obj_location.lower():
+                    gone_from_collection = True
         # skip blank rows:
-        elif not has_data(obj_row, obj_col_list[COLUMN_NAME_ID]):
+        if not has_data(obj_row, obj_col_list[COLUMN_NAME_ID]):
             # need to add 2 to get the correct row offset (title row skipped)
             print("blank ID in row {}".format(obj_num+2))
+        elif gone_from_collection:
+            print("Skipping {:13} {:8} {:64.64}".format(obj_row[obj_col_list[COLUMN_NAME_LOCATION]], \
+                                                        obj_row[obj_col_list[COLUMN_NAME_ID]], obj_description))
         else:
             # print("object: {}".format(obj_row[obj_col_list[COLUMN_NAME_ID]]))
             # query to get picture file ID
@@ -187,13 +197,9 @@ def main():
             files_dict = results.get('files', [])
 
             if not files_dict or len(files_dict) < 1:
-                if has_data(obj_row, obj_col_list[COLUMN_NAME_LOCATION]):
-                    obj_w_missing_pic_location = obj_row[obj_col_list[COLUMN_NAME_LOCATION]]
-                else:
-                    obj_w_missing_pic_location = ""
                 missing_pic_array.append({missing_pic_columns[0]: obj_row[obj_col_list[COLUMN_NAME_ID]], \
-                                          missing_pic_columns[1]: obj_row[1], \
-                                          missing_pic_columns[2]: obj_w_missing_pic_location})
+                                          missing_pic_columns[1]: obj_description, \
+                                          missing_pic_columns[2]: obj_location})
                 # print("Warning: no pic for object: {:12} {:64.64}".format(obj_row[obj_col_list[COLUMN_NAME_ID]], \
                 #                                                           obj_row[1]), end=" ")
                 # if has_data(obj_row, obj_col_list[COLUMN_NAME_LOCATION]):
@@ -212,7 +218,7 @@ def main():
                 pic_path = "https://drive.google.com/file/d/" + pic_id + "/view"
 
             # the title appears on hover over the picture (desktop browser)
-            pic_title = obj_row[obj_col_list[COLUMN_NAME_ID]] + "  " + obj_row[1]
+            pic_title = obj_row[obj_col_list[COLUMN_NAME_ID]] + "  " + obj_description
 
             # make the pop-up text
             if has_data(obj_row, obj_col_list[COLUMN_NAME_OBJECT_TYPE]):
