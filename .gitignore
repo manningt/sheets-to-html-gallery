@@ -1,8 +1,8 @@
-.idea/*
 # the following are generated files:
 *.pickle
 *.html
-pages*
+pages-by-*
+reports
 # the json files have Google API credentials
 *.json
 
